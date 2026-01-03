@@ -185,6 +185,7 @@ function setupColorPicker(boxId) {
         }
     });
     box.addEventListener('dragstart', e => {
+        draggedColor = box.style.backgroundColor;
     });
     box.addEventListener('dragover', e => e.preventDefault());
     box.addEventListener('drop', e => {
@@ -324,7 +325,7 @@ function initSavedColors() {
             }
         });
         div.addEventListener('dragstart', e => {
-            draggedColor = color;
+            draggedColor = div.style.backgroundColor;
         });
         saver.appendChild(div);
     }
