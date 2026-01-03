@@ -195,6 +195,7 @@ function setupColorPicker(boxId) {
             } else {
                 updateBoxColor(boxId, draggedColor);
             }
+            draggedColor = null;
         }
     });
 }
@@ -319,7 +320,11 @@ function initSavedColors() {
             e.preventDefault();
             if (draggedColor) {
                 div.style.backgroundColor = draggedColor;
+                draggedColor = null;
             }
+        });
+        div.addEventListener('dragstart', e => {
+            draggedColor = color;
         });
         saver.appendChild(div);
     }
@@ -349,6 +354,7 @@ function initKeyboard() {
         circle.addEventListener('drop', e => {
             e.preventDefault();
             if (draggedColor) applyToColumn(col, draggedColor);
+            draggedColor = null;
         });
         grid.appendChild(circle);
     }
@@ -370,6 +376,7 @@ function initKeyboard() {
         circle.addEventListener('drop', e => {
             e.preventDefault();
             if (draggedColor) applyToRow(row, draggedColor);
+            draggedColor = null;
         });
         grid.appendChild(circle);
 
@@ -406,6 +413,7 @@ function initKeyboard() {
                     key.style.backgroundColor = draggedColor;
                     keyColors[`${row}-${col}`] = draggedColor;
                     updateControlCircles();
+                    draggedColor = null;
                 }
             });
             grid.appendChild(key);
