@@ -172,8 +172,8 @@ function setupColorPicker(boxId) {
             const currentL = document.getElementById(`${boxId.slice(0,2)}-lig`).value;
             colorPicker.color.hsl = { h: currentH, s: currentS, l: currentL };
         } else {
-            const currentHex = box.style.backgroundColor;
-            colorPicker.color.hexString = rgbToHex(...currentHex.match(/\d+/g).map(Number));
+            const currentStyle = box.style.backgroundColor;
+            colorPicker.color.hexString = styleToHex(currentStyle);
         }
         picker.style.display = 'flex';
         picker.style.position = 'absolute';
@@ -185,7 +185,7 @@ function setupColorPicker(boxId) {
         }
     });
     box.addEventListener('dragstart', e => {
-        draggedColor = box.style.backgroundColor;
+        draggedColor = styleToHex(box.style.backgroundColor);
     });
     box.addEventListener('dragover', e => e.preventDefault());
     box.addEventListener('drop', e => {
@@ -325,7 +325,7 @@ function initSavedColors() {
             }
         });
         div.addEventListener('dragstart', e => {
-            draggedColor = div.style.backgroundColor;
+            draggedColor = styleToHex(div.style.backgroundColor);
         });
         saver.appendChild(div);
     }
@@ -348,7 +348,7 @@ function initKeyboard() {
         circle.addEventListener('dragstart', e => {
             const color = circle.style.backgroundColor;
             if (color && color !== 'white') {
-                draggedColor = rgbToHex(...color.match(/\d+/g).map(Number));
+                draggedColor = styleToHex(color);
             }
         });
         circle.addEventListener('dragover', e => e.preventDefault());
@@ -370,7 +370,7 @@ function initKeyboard() {
         circle.addEventListener('dragstart', e => {
             const color = circle.style.backgroundColor;
             if (color && color !== 'white') {
-                draggedColor = rgbToHex(...color.match(/\d+/g).map(Number));
+                draggedColor = styleToHex(color);
             }
         });
         circle.addEventListener('dragover', e => e.preventDefault());
@@ -397,7 +397,7 @@ function initKeyboard() {
             key.addEventListener('dragstart', e => {
                 const color = key.style.backgroundColor;
                 if (color) {
-                    draggedColor = rgbToHex(...color.match(/\d+/g).map(Number));
+                    draggedColor = styleToHex(color);
                 }
             });
             key.addEventListener('dragover', e => {
@@ -420,13 +420,6 @@ function initKeyboard() {
             grid.appendChild(key);
         }
     }
-}
-
-function rgbToHex(r, g, b) {
-    return "#" + [r, g, b].map(x => {
-        const hex = Math.round(Math.max(0, Math.min(255, x))).toString(16);
-        return hex.length === 1 ? "0" + hex : hex;
-    }).join('');
 }
 
 function applyToColumn(col, color) {
@@ -492,12 +485,12 @@ function updateExport() {
     }
 
     const showLetters = document.getElementById('show-letters').checked;
-    const labelColor = rgbToHexFromStyle(document.getElementById('letter-color-box').style.backgroundColor);
-    const borderColor = rgbToHexFromStyle(document.getElementById('border-color-box').style.backgroundColor);
+    const labelColor = styleToHex(document.getElementById('letter-color-box').style.backgroundColor);
+    const borderColor = styleToHex(document.getElementById('border-color-box').style.backgroundColor);
     const borderThickness = parseInt(document.getElementById('border-thickness').value);
-    const pressedKeyColor = rgbToHexFromStyle(document.getElementById('pressed-key-box').style.backgroundColor);
-    const approachCircle = rgbToHexFromStyle(document.getElementById('approach-circle-box').style.backgroundColor);
-    const holdNote = rgbToHexFromStyle(document.getElementById('hold-note-box').style.backgroundColor);
+    const pressedKeyColor = styleToHex(document.getElementById('pressed-key-box').style.backgroundColor);
+    const approachCircle = styleToHex(document.getElementById('approach-circle-box').style.backgroundColor);
+    const holdNote = styleToHex(document.getElementById('hold-note-box').style.backgroundColor);
     const holdOpacity = parseInt(document.getElementById('hold-opacity').value) / 100;
 
     const output = {
@@ -524,12 +517,17 @@ function updateExport() {
     document.getElementById('json-output').textContent = json;
 }
 
-function rgbToHexFromStyle(rgbString) {
+function styleToHex(rgbString) {
     if (!rgbString || rgbString === '') return '#FFFFFF';
     if (rgbString.startsWith('#')) return rgbString;
+
     const matches = rgbString.match(/\d+/g);
     if (!matches) return '#FFFFFF';
-    return rgbToHex(...matches.map(Number));
+
+    return "#" + matches.map(x => {
+        const hex = Math.round(Math.max(0, Math.min(255, Number(x)))).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+    }).join('');
 }
 
 function copyToClipboard() {
@@ -573,12 +571,12 @@ function downloadZip() {
     }
 
     const showLetters = document.getElementById('show-letters').checked;
-    const labelColor = rgbToHexFromStyle(document.getElementById('letter-color-box').style.backgroundColor);
-    const borderColor = rgbToHexFromStyle(document.getElementById('border-color-box').style.backgroundColor);
+    const labelColor = styleToHex(document.getElementById('letter-color-box').style.backgroundColor);
+    const borderColor = styleToHex(document.getElementById('border-color-box').style.backgroundColor);
     const borderThickness = parseInt(document.getElementById('border-thickness').value);
-    const pressedKeyColor = rgbToHexFromStyle(document.getElementById('pressed-key-box').style.backgroundColor);
-    const approachCircle = rgbToHexFromStyle(document.getElementById('approach-circle-box').style.backgroundColor);
-    const holdNote = rgbToHexFromStyle(document.getElementById('hold-note-box').style.backgroundColor);
+    const pressedKeyColor = styleToHex(document.getElementById('pressed-key-box').style.backgroundColor);
+    const approachCircle = styleToHex(document.getElementById('approach-circle-box').style.backgroundColor);
+    const holdNote = styleToHex(document.getElementById('hold-note-box').style.backgroundColor);
     const holdOpacity = parseInt(document.getElementById('hold-opacity').value) / 100;
 
     const output = {
