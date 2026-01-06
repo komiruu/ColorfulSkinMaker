@@ -113,6 +113,24 @@ body.dark-theme .theme-toggle {
     border-color: #555;
 }
 
+.reset-settings {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+body.dark-theme .reset-settings {
+    background: #333;
+    color: #e0e0e0;
+    border-color: #555;
+}
+
 h1 {
     text-align: center;
 }

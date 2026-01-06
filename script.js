@@ -256,6 +256,12 @@ function setupBoxWithColorPicker(boxId, onColorChange) {
     const picker = document.getElementById("picker");
     const box = document.getElementById(boxId);
 
+    const storedColor = localStorage.getItem(boxId);
+    if (storedColor) {
+        if (boxId.includes('base-box')) updateBaseColor(boxId, storedColor);
+        else box.style.backgroundColor = storedColor;
+    }
+
     box.addEventListener('click', (e) => {
         currentColorBoxPicking = box;
         if (boxId.includes('base-box')) {
@@ -281,17 +287,19 @@ function setupBoxWithColorPicker(boxId, onColorChange) {
 }
 
 // Calling setup for each color box with color picker on click
-setupBoxWithColorPicker('p1-base-box', (hex) => updateBaseColor('p1-base-box', hex));
-setupBoxWithColorPicker('p2-base-box', (hex) => updateBaseColor('p2-base-box', hex));
-setupBoxWithColorPicker('letter-color-box',
-    (hex) => document.querySelectorAll('.key').forEach(key => key.style.color = hex)
-);
-setupBoxWithColorPicker('border-color-box',
-    (hex) => document.querySelectorAll('.key, .palette-color, .color-box').forEach(div => div.style.borderColor = hex)
-);
-setupBoxWithColorPicker('pressed-key-box');
-setupBoxWithColorPicker('approach-circle-box');
-setupBoxWithColorPicker('hold-note-box');
+setupBoxWithColorPicker('p1-base-box', (hex) => {updateBaseColor('p1-base-box', hex); saveColor('p1-base-box', hex)});
+setupBoxWithColorPicker('p2-base-box', (hex) => {updateBaseColor('p2-base-box', hex); saveColor('p2-base-box', hex)});
+setupBoxWithColorPicker('letter-color-box', (hex) => {
+        document.querySelectorAll('.key').forEach(key => key.style.color = hex);
+        saveColor('letter-color-box', hex);
+});
+setupBoxWithColorPicker('border-color-box', (hex) => {
+    document.querySelectorAll('.key, .palette-color, .color-box').forEach(div => div.style.borderColor = hex)
+    saveColor('border-color-box', hex);
+});
+setupBoxWithColorPicker('pressed-key-box', (hex) => saveColor('pressed-key-box', hex));
+setupBoxWithColorPicker('approach-circle-box', (hex) => saveColor('approach-circle-box', hex));
+setupBoxWithColorPicker('hold-note-box', (hex) => saveColor('hold-note-box', hex));
 
 // Initialize second section palettes
 function initRainbowPalette() {
@@ -312,7 +320,9 @@ function initSavedColors() {
     for (let i = 0; i < 10; i++) {
         const div = document.createElement('div');
         div.className = 'palette-color';
-        enableColorDragDrop(div, true)
+        const storedColor = localStorage.getItem(`savedColor${i}`);
+        if (storedColor) div.style.backgroundColor = storedColor;
+        enableColorDragDrop(div, true, (hex) => saveColor(`savedColor${i}`, hex));
         saver.appendChild(div);
     }
 }
@@ -359,6 +369,11 @@ function initKeyboard() {
             key.dataset.row = row;
             key.dataset.col = col;
             key.dataset.letter = qwertyLayout[row][col];
+            const savedColor = localStorage.getItem(`key-${row}-${col}`);
+            if (savedColor) {
+                key.style.backgroundColor = savedColor;
+                keyColors[`${row}-${col}`] = savedColor;
+            }
             key.textContent = key.dataset.letter;
             key.style.gridColumn = col + 2;
             key.style.gridRow = row + 2;
@@ -377,6 +392,7 @@ function applyToKey(key) {
     const row = key.dataset.row;
     const col = key.dataset.col;
     keyColors[`${row}-${col}`] = styleToHex(key.style.backgroundColor);
+    saveColor(`key-${row}-${col}`, keyColors[`${row}-${col}`]);
     updateControlCircles();
 }
 
@@ -386,6 +402,7 @@ function applyToColumn(col) {
         const key = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         key.style.backgroundColor = color;
         keyColors[`${row}-${col}`] = color;
+        saveColor(`key-${row}-${col}`, color);
     }
     updateControlCircles();
 }
@@ -396,6 +413,7 @@ function applyToRow(row) {
         const key = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         key.style.backgroundColor = color;
         keyColors[`${row}-${col}`] = color;
+        saveColor(`key-${row}-${col}`, color);
     }
     updateControlCircles();
 }
@@ -435,15 +453,38 @@ function updateControlCircles() {
 // Add slider event listeners to update values
 document.getElementById('label-size').addEventListener('input', e => {
     document.getElementById('label-size-val').textContent = e.target.value;
+    localStorage.setItem('label-size', e.target.value);
 });
 
 document.getElementById('border-thickness').addEventListener('input', e => {
     document.getElementById('border-thickness-val').textContent = e.target.value + 'px';
+    localStorage.setItem('border-thickness', e.target.value);
 });
 
 document.getElementById('hold-opacity').addEventListener('input', e => {
     document.getElementById('hold-opacity-val').textContent = e.target.value + '%';
+    localStorage.setItem('hold-opacity', e.target.value);
 });
+
+// Load saved slider values
+const savedLabelSize = localStorage.getItem('label-size');
+if (savedLabelSize) {
+    document.getElementById('label-size').value = savedLabelSize;
+    document.getElementById('label-size-val').textContent = savedLabelSize;
+}
+
+const savedBorderThickness = localStorage.getItem('border-thickness');
+if (savedBorderThickness) {
+    document.getElementById('border-thickness').value = savedBorderThickness;
+    document.getElementById('border-thickness-val').textContent = savedBorderThickness + 'px';
+}
+
+const savedHoldOpacity = localStorage.getItem('hold-opacity'); 
+if (savedHoldOpacity) {
+    document.getElementById('hold-opacity').value = savedHoldOpacity;
+    document.getElementById('hold-opacity-val').textContent = savedHoldOpacity + '%';
+}
+
 
 
 function copyToClipboard() {
@@ -500,7 +541,7 @@ function updateExport() {
 }
 
 
-// Download Zip simply put the current textarea content into a zip file
+// Download Zip puts the current textarea content into a zip file
 function downloadZip() {
     const jsonString = document.getElementById('json-output').value;
     
@@ -528,21 +569,43 @@ function downloadZip() {
     });
 }
 
+// Saving color to localStorage
+function saveColor(id, hex) {
+    if (hex && hex !== '') {
+        localStorage.setItem(id, hex);
+    } else {
+        localStorage.removeItem(id);
+    }
+}
+
 
 // Initial Setup Calls
-updateBaseColor('p1-base-box');
-updateBaseColor('p2-base-box');
-initRainbowPalette();
-initSavedColors();
-initKeyboard();
+function initialSetup() {
+    if (localStorage.getItem('p1-base-box') == null) updateBaseColor('p1-base-box');
+    if (localStorage.getItem('p2-base-box') == null) updateBaseColor('p2-base-box');
+    initRainbowPalette();
+    initSavedColors();
+    initKeyboard();
 
-const initialBorderColor = '#303030ff'
-document.getElementById('border-color-box').style.backgroundColor = initialBorderColor;
-document.querySelectorAll('.key, .palette-color, .color-box').forEach(div => div.style.borderColor = initialBorderColor);
-const initialLetterColor = '#646464ff'
-document.getElementById('letter-color-box').style.backgroundColor = initialLetterColor;
-document.querySelectorAll('.key').forEach(key => key.style.color = initialLetterColor);
+    const borderBox = document.getElementById('border-color-box')
+    const initialBorderColor = borderBox.style.backgroundColor || '#303030'
+    document.getElementById('border-color-box').style.backgroundColor = styleToHex(initialBorderColor);
+    document.querySelectorAll('.key, .palette-color, .color-box').forEach(div => div.style.borderColor = styleToHex(initialBorderColor));
+    const letterBox = document.getElementById('letter-color-box')
+    const initialLetterColor = letterBox.style.backgroundColor || '#646464'
+    document.getElementById('letter-color-box').style.backgroundColor = styleToHex(initialLetterColor);
+    document.querySelectorAll('.key').forEach(key => key.style.color = styleToHex(initialLetterColor));
+}
+initialSetup();
+
 
 function toggleTheme() {
     document.body.classList.toggle('dark-theme');
+}
+
+function resetLocalStorage() {
+    if (confirm('Are you sure you want to reset all saved colors? This cannot be undone.')) {
+        localStorage.clear();
+        location.reload();
+    }
 }
