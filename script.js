@@ -458,9 +458,9 @@ function updateExport() {
 
     for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 10; col++) {
-            const color = styleToHex(keyColors[`${row}-${col}`]);
+            const color = keyColors[`${row}-${col}`];
             if (color) {
-                keyColorsExport[keys[row+1][col]] = color;
+                keyColorsExport[keys[row+1][col]] = styleToHex(color);
             }
         }
     }
