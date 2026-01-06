@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colorful Skin Maker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
 </head>
 <body class="dark-theme">
 
@@ -118,12 +119,12 @@
             <div class="horizontal-flex">
                 <div class="keyboard-settings">
                     <label class="check-btn">
-                        <input type="checkbox" id="show-letters">
+                        <input type="checkbox" checked="true" id="show-letters">
                         <span>Show Letters</span>
                     </label>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <label>Letter Color:</label>
-                        <div class="color-picker-box" id="letter-color-box" style="background-color: #000000;"></div>
+                        <div class="color-picker-box" id="letter-color-box" style="background-color: #646464;"></div>
                         <input type="color" id="letter-color" value="#000000" style="display: none;">
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -142,13 +143,18 @@
                     <div class="horizontal-flex">
                         <div class="keyboard-settings">
                             <div class="control-row">
+                                <label>Letter Size:</label>
+                                <input class="slider" type="range" id="label-size" min="1" max="48" value="36">
+                                <span id="label-size-val">36</span>
+                            </div>
+                            <div class="control-row">
                                 <label>Border Thickness:</label>
                                 <input class="slider" type="range" id="border-thickness" min="0" max="10" value="2">
                                 <span id="border-thickness-val">2px</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <label>Pressed Key:</label>
-                                <div class="color-picker-box" id="pressed-key-box" style="background-color: #D8F2F2;"></div>
+                                <div class="color-picker-box" id="pressed-key-box" style="background-color: #cacaca;"></div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <label>Approach Circle:</label>
@@ -156,7 +162,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <label>Hold Note Glow:</label>
-                                <div class="color-picker-box" id="hold-note-box" style="background-color: #CCCCCC;"></div>
+                                <div class="color-picker-box" id="hold-note-box" style="background-color: #e6e6e6;"></div>
                             </div>
                             <div class="control-row">
                                 <label>Hold Opacity:</label>
@@ -178,7 +184,7 @@
                                 <button class="simple-btn" onclick="copyToClipboard()">Copy JSON</button>
                                 <button class="simple-btn" onclick="downloadZip()">Download Zip</button>
                             </div>
-                            <div class="json-output" id="json-output">Select a layout and click "Update Export"</div>
+                            <textarea class="json-output" spellcheck="false" id="json-output" rows="200">Select a layout and click "Update Export"</textarea>
                         </div>  
                     </div>
                     

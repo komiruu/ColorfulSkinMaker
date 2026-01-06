@@ -48,8 +48,8 @@ body {
 
 body.dark-theme .grid-background {
     background-image:
-        linear-gradient(to right, rgba(255, 255, 255, 0.089) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.089) 1px, transparent 1px);
+        linear-gradient(to right, rgba(255, 255, 255, 0.1) 2px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 2px, transparent 1px);
 }
 
 body.dark-theme {
@@ -328,6 +328,8 @@ body.dark-theme .control-circle {
     overflow-x: auto;
     max-height: 300px;
     overflow-y: auto;
+    resize: none;
+    width: 100%;
 }
 
 .horizontal-flex {
@@ -408,6 +410,9 @@ body.dark-theme .check-btn input:checked + span {
 .simple-btn:focus-visible {
   background: #ffffff;
   outline: none;
+}
+.simple-btn:active {
+  transform: scale(0.98);
 }
 body.dark-theme .simple-btn {
   border-color: #555;

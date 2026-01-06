@@ -4,37 +4,41 @@ const qwertyLayout = [
     ['Z','X','C','V','B','N','M',',','.','/']
 ];
 
+
+// To add other layouts, follow the same structure
 const layouts = {
-    qwerty: [
+    qwerty: [ "QWERTY",
         ['q','w','e','r','t','y','u','i','o','p'],
         ['a','s','d','f','g','h','j','k','l',';'],
         ['z','x','c','v','b','n','m',',','.','/']
     ],
-    azerty: [
+    azerty: [ "AZERTY",
         ['a','z','e','r','t','y','u','i','o','p'],
         ['q','s','d','f','g','h','j','k','l','m'],
         ['w','x','c','v','b','n',',',';',':','!']
     ],
-    qwertz: [
+    qwertz: [ "QWERTZ",
         ['q','w','e','r','t','z','u','i','o','p'],
         ['a','s','d','f','g','h','j','k','l','ö'],
         ['y','x','c','v','b','n','m',',','.','-']
     ],
-    dvorak: [
+    dvorak: [ "Dvorak",
         ['\'',',','.','p','y','f','g','c','r','l'],
         ['a','o','e','u','i','d','h','t','n','s'],
         [';','q','j','k','x','b','m','w','v','z']
     ],
-    colemak: [
+    colemak: [ "Colemak",
         ['q','w','f','p','g','j','l','u','y',';'],
         ['a','r','s','t','d','h','n','e','i','o'],
         ['z','x','c','v','b','k','m',',','.','/']
     ]
 };
 
-let keyColors = {};
-let draggedColor = null;
+let keyColors = {}; // Store colors for each key by "row-col" key on the customised keyboard
+let draggedColorHex = null; // Used for drag-and-drop in case dataTransfer doesn't work
 
+
+// Color Conversion Utilities
 function hslToHex(h, s, l) {
     s /= 100;
     l /= 100;
@@ -75,179 +79,64 @@ function hexToHsl(hex) {
     return { h: h * 360, s: s * 100, l: l * 100 };
 }
 
-function generatePalette(num) {
-    const h = document.getElementById(`p${num}-hue`).value;
-    const s = document.getElementById(`p${num}-sat`).value;
-    const l = document.getElementById(`p${num}-lig`).value;
-    const mode = document.getElementById(`p${num}-mode`).value;
-    const hsl = { h: parseInt(h), s: parseInt(s), l: parseInt(l) };
-    const colors = [];
+function styleToHex(rgbString) {
+    if (!rgbString || rgbString === '') return '#FFFFFF';
+    if (rgbString.startsWith('#')) return rgbString;
 
-    if (mode === 'monochrome') {
-        for (let i = 0; i < 24; i++) {
-            const l = (299 * i / 23) % 100;
-            colors.push(hslToHex(hsl.h, hsl.s, l));
-        }
-    } else if (mode === 'analogous') {
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 8; col++) {
-                const h = (hsl.h + (col * 15) + (row * 20)) % 360;
-                colors.push(hslToHex(h, hsl.s, hsl.l));
-            }
-        }
-    } else if (mode === 'complementary') {
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 8; col++) {
-                const h = col < 4 ? hsl.h : (hsl.h + 180) % 360;
+    const matches = rgbString.match(/\d+/g);
+    if (!matches) return '#FFFFFF';
 
-                const t = (row * 4 + (col % 4)) / (3 * 4 - 1);
-                const l = 0.5 * hsl.l + t * 50;
-
-                colors.push(hslToHex(h, hsl.s, l));
-            }
-        }
-    } else if (mode === 'triadic') {
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 8; col++) {
-                const h = (hsl.h + Math.floor(col / 3) * 120) % 360;
-
-                const t = (row * 8 + col) / (3 * 8 - 1);
-                const l = 0.5 * hsl.l + t * 50;
-
-                colors.push(hslToHex(h, hsl.s, l));
-            }
-        }
-    }
-
-    const grid = document.getElementById(`palette${num}`);
-    grid.innerHTML = '';
-    colors.forEach(color => {
-        const div = document.createElement('div');
-        div.className = 'palette-color';
-        div.style.backgroundColor = color;
-        div.draggable = true;
-        div.addEventListener('dragstart', e => {
-            draggedColor = color;
-        });
-        grid.appendChild(div);
-    });
-
-    updateBorderColors()
+    return "#" + matches.map(x => {
+        const hex = Math.round(Math.max(0, Math.min(255, Number(x)))).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+    }).join('');
 }
 
-// Slider Event Listeners
-['p1-hue', 'p2-hue'].forEach(id => {
-    document.getElementById(id).addEventListener('input', e => {
-        document.getElementById(`${id}-val`).textContent = e.target.value + '°';
-        updateBaseColor(`${id.slice(0,2)}-base-box`);
-    });
-});
 
-['p1-sat', 'p2-sat'].forEach(id => {
-    document.getElementById(id).addEventListener('input', e => {
-        document.getElementById(`${id}-val`).textContent = e.target.value + '%';
-        updateBaseColor(`${id.slice(0,2)}-base-box`);
-    });
-});
-
-['p1-lig', 'p2-lig'].forEach(id => {
-    document.getElementById(id).addEventListener('input', e => {
-        document.getElementById(`${id}-val`).textContent = e.target.value + '%';
-        updateBaseColor(`${id.slice(0,2)}-base-box`);
-    });
-});
-
-
-// Setup of color picker boxes
-function setupColorPicker(boxId) {
-    const picker = document.getElementById("picker");
-    const box = document.getElementById(boxId);
-
-    box.draggable = true;
-    box.addEventListener('click', (e) => {
-        currentColorBoxPicking = box;
-        if (boxId.includes('base-box')) {
-            const currentH = document.getElementById(`${boxId.slice(0,2)}-hue`).value;
-            const currentS = document.getElementById(`${boxId.slice(0,2)}-sat`).value;
-            const currentL = document.getElementById(`${boxId.slice(0,2)}-lig`).value;
-            colorPicker.color.hsl = { h: currentH, s: currentS, l: currentL };
-        } else {
-            const currentStyle = box.style.backgroundColor;
-            colorPicker.color.hexString = styleToHex(currentStyle);
-        }
-        picker.style.display = 'flex';
-        picker.style.position = 'absolute';
-        picker.style.top = `${e.pageY}px`;
-        if (e.pageX + picker.offsetWidth > window.innerWidth) {
-            picker.style.left = `${e.pageX - picker.offsetWidth}px`;
-        } else {
-            picker.style.left = `${e.pageX}px`;
-        }
-    });
-    box.addEventListener('dragstart', e => {
-        draggedColor = styleToHex(box.style.backgroundColor);
-    });
-    box.addEventListener('dragover', e => e.preventDefault());
-    box.addEventListener('drop', e => {
-        e.preventDefault();
-        if (draggedColor) {
-            if (boxId.includes('base-box')) {
-                updateBaseColor(boxId, draggedColor);
-            } else {
-                updateBoxColor(boxId, draggedColor);
-            }
-            draggedColor = null;
-        }
-    });
+// Better Drag and Drop support
+function enableColorDragDrop(div, doHandleDrop, onDrop) {
+    div.draggable = true;
+    div.addEventListener('dragstart', e => {
+        if (e.target.style.backgroundColor) {
+            dragstartHandler(e)
+        }});  
+    div.addEventListener('dragover', e => e.preventDefault());
+    if (doHandleDrop) div.addEventListener('drop', e => dropHandler(e, onDrop));
 }
 
-setupColorPicker('p1-base-box', 1);
-setupColorPicker('p2-base-box', 2);
-setupColorPicker('letter-color-box');
-setupColorPicker('border-color-box');
-setupColorPicker('pressed-key-box');
-setupColorPicker('approach-circle-box');
-setupColorPicker('hold-note-box');
-
-// Add slider event listeners
-document.getElementById('border-thickness').addEventListener('input', e => {
-    document.getElementById('border-thickness-val').textContent = e.target.value + 'px';
-});
-
-document.getElementById('hold-opacity').addEventListener('input', e => {
-    document.getElementById('hold-opacity-val').textContent = e.target.value + '%';
-});
-
-
-function updateLetterColors() {
-    const color = document.getElementById('letter-color-box').style.backgroundColor;
-    document.querySelectorAll('.key').forEach(key => {
-        key.style.color = color;
-    });
+function dragstartHandler(dragEvent) {
+    draggedColorHex = styleToHex(dragEvent.target.style.backgroundColor)
+    dragEvent.dataTransfer.clearData()
+    dragEvent.dataTransfer.setData("text", draggedColorHex)
 }
 
-function updateBorderColors() {
-    const color = document.getElementById('border-color-box').style.backgroundColor;
-    document.querySelectorAll('.key, .palette-color, .color-box').forEach(el => {
-        el.style.borderColor = color;
-    });
+function dropHandler(dragEvent, onColorChange) {
+    dragEvent.preventDefault()
+    const dtColorHex = dragEvent.dataTransfer.getData("text")
+    const hex = dtColorHex || draggedColorHex;
+    dragEvent.target.style.backgroundColor = hex;
+    if (onColorChange) onColorChange(hex);
+    draggedColorHex = null;
 }
-
 
 // Color Picker Setup
 let currentColorBoxPicking = null;
+let currentColorBoxPickingOnChange = null;
 const colorPicker = new iro.ColorPicker("#color-picker", {
     width: 200,
     color: "#7b299bff"
 })
 
-colorPicker.on('color:change', function(color) {
+colorPicker.on('color:change', (color) => {
     if (currentColorBoxPicking) {
         const boxId = currentColorBoxPicking.id;
         if (boxId.includes('base-box')) {
                 updateBaseColor(boxId, color.hexString);
             } else {
-                updateBoxColor(boxId, color.hexString);
+                currentColorBoxPicking.style.backgroundColor = color.hexString;
+                if (currentColorBoxPickingOnChange) {
+                    currentColorBoxPickingOnChange(color.hexString);
+                }
             }
     }
 })
@@ -285,15 +174,126 @@ function updateBaseColor(boxId, hex) {
     generatePalette(boxId.startsWith('p1') ? 1 : 2);
 }
 
-// Simpler approach with hex only because we don't need to update palettes here
-function updateBoxColor(boxId, hex) {
-    const box = document.getElementById(boxId);
-    box.style.backgroundColor = hex;
-    updateLetterColors();
-    updateBorderColors();
+// Palette Generation called when sliders change or color is dropped/picked
+function generatePalette(num) {
+    const h = document.getElementById(`p${num}-hue`).value;
+    const s = document.getElementById(`p${num}-sat`).value;
+    const l = document.getElementById(`p${num}-lig`).value;
+    const mode = document.getElementById(`p${num}-mode`).value;
+    const hsl = { h: parseInt(h), s: parseInt(s), l: parseInt(l) };
+    const colors = [];
+
+    if (mode === 'monochrome') {
+        for (let i = 0; i < 24; i++) {
+            const l = (299 * i / 23) % 100;
+            colors.push(hslToHex(hsl.h, hsl.s, l));
+        }
+    } else if (mode === 'analogous') {
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 8; col++) {
+                const h = (hsl.h + (col * 15) + (row * 20)) % 360;
+                colors.push(hslToHex(h, hsl.s, hsl.l));
+        }}
+    } else if (mode === 'complementary') {
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 8; col++) {
+                const h = col < 4 ? hsl.h : (hsl.h + 180) % 360;
+
+                const t = (row * 4 + (col % 4)) / (3 * 4 - 1);
+                const l = 0.5 * hsl.l + t * 50;
+
+                colors.push(hslToHex(h, hsl.s, l));
+        }}
+    } else if (mode === 'triadic') {
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 8; col++) {
+                const h = (hsl.h + Math.floor(col / 3) * 120) % 360;
+
+                const t = (row * 8 + col) / (3 * 8 - 1);
+                const l = 0.5 * hsl.l + t * 50;
+
+                colors.push(hslToHex(h, hsl.s, l));
+        }}
+    }
+
+    // Populate the palette grid
+    const grid = document.getElementById(`palette${num}`);
+    const borderColor = document.getElementById('border-color-box').style.backgroundColor;
+    grid.innerHTML = '';
+    colors.forEach(color => {
+        const div = document.createElement('div');
+        div.className = 'palette-color';
+        div.style.backgroundColor = color;
+        div.style.borderColor = borderColor;
+        enableColorDragDrop(div, false)
+        grid.appendChild(div);
+    });
 }
 
+// HSL Slider Event Listeners
+['p1-hue', 'p2-hue'].forEach(id => {
+    document.getElementById(id).addEventListener('input', e => {
+        document.getElementById(`${id}-val`).textContent = e.target.value + '°';
+        updateBaseColor(`${id.slice(0,2)}-base-box`);
+    });
+});
+['p1-sat', 'p2-sat'].forEach(id => {
+    document.getElementById(id).addEventListener('input', e => {
+        document.getElementById(`${id}-val`).textContent = e.target.value + '%';
+        updateBaseColor(`${id.slice(0,2)}-base-box`);
+    });
+});
+['p1-lig', 'p2-lig'].forEach(id => {
+    document.getElementById(id).addEventListener('input', e => {
+        document.getElementById(`${id}-val`).textContent = e.target.value + '%';
+        updateBaseColor(`${id.slice(0,2)}-base-box`);
+    });
+});
 
+
+// Setup for color picker boxes
+function setupBoxWithColorPicker(boxId, onColorChange) {
+    const picker = document.getElementById("picker");
+    const box = document.getElementById(boxId);
+
+    box.addEventListener('click', (e) => {
+        currentColorBoxPicking = box;
+        if (boxId.includes('base-box')) {
+            const currentH = document.getElementById(`${boxId.slice(0,2)}-hue`).value;
+            const currentS = document.getElementById(`${boxId.slice(0,2)}-sat`).value;
+            const currentL = document.getElementById(`${boxId.slice(0,2)}-lig`).value;
+            colorPicker.color.hsl = { h: currentH, s: currentS, l: currentL };
+        } else {
+            currentColorBoxPickingOnChange = onColorChange;
+            colorPicker.color.hexString = styleToHex(box.style.backgroundColor);
+        }
+        picker.style.display = 'flex';
+        picker.style.position = 'absolute';
+        picker.style.top = `${e.pageY + 16}px`;
+        if (e.pageX + 10 + picker.offsetWidth > window.innerWidth) {
+            picker.style.left = `auto`;
+            picker.style.right = `0px`;
+        } else {
+            picker.style.left = `${e.pageX + 10}px`;
+        }
+    });
+    enableColorDragDrop(box, true, (hex) => onColorChange(hex));
+}
+
+// Calling setup for each color box with color picker on click
+setupBoxWithColorPicker('p1-base-box', (hex) => updateBaseColor('p1-base-box', hex));
+setupBoxWithColorPicker('p2-base-box', (hex) => updateBaseColor('p2-base-box', hex));
+setupBoxWithColorPicker('letter-color-box',
+    (hex) => document.querySelectorAll('.key').forEach(key => key.style.color = hex)
+);
+setupBoxWithColorPicker('border-color-box',
+    (hex) => document.querySelectorAll('.key, .palette-color, .color-box').forEach(div => div.style.borderColor = hex)
+);
+setupBoxWithColorPicker('pressed-key-box');
+setupBoxWithColorPicker('approach-circle-box');
+setupBoxWithColorPicker('hold-note-box');
+
+// Initialize second section palettes
 function initRainbowPalette() {
     const palette = document.getElementById('rainbow-palette');
     for (let i = 0; i < 10; i++) {
@@ -302,10 +302,7 @@ function initRainbowPalette() {
         const div = document.createElement('div');
         div.className = 'palette-color';
         div.style.backgroundColor = color;
-        div.draggable = true;
-        div.addEventListener('dragstart', e => {
-            draggedColor = color;
-        });
+        enableColorDragDrop(div, false)
         palette.appendChild(div);
     }
 }
@@ -315,22 +312,21 @@ function initSavedColors() {
     for (let i = 0; i < 10; i++) {
         const div = document.createElement('div');
         div.className = 'palette-color';
-        div.draggable = true;
-        div.addEventListener('dragover', e => e.preventDefault());
-        div.addEventListener('drop', e => {
-            e.preventDefault();
-            if (draggedColor) {
-                div.style.backgroundColor = draggedColor;
-                draggedColor = null;
-            }
-        });
-        div.addEventListener('dragstart', e => {
-            draggedColor = styleToHex(div.style.backgroundColor);
-        });
+        enableColorDragDrop(div, true)
         saver.appendChild(div);
     }
 }
 
+// Third section keyboard setup
+
+document.getElementById('show-letters').addEventListener('change', e => {
+    const show = e.target.checked;
+    document.querySelectorAll('.key').forEach(key => {
+        key.textContent = show ? key.dataset.letter : '';
+    });
+});
+
+// Keyboard Setup
 function initKeyboard() {
     const grid = document.getElementById('keyboard-grid');
     grid.innerHTML = '';
@@ -344,19 +340,7 @@ function initKeyboard() {
         circle.dataset.col = col;
         circle.style.gridColumn = col + 2;
         circle.style.gridRow = 1;
-        circle.draggable = true;
-        circle.addEventListener('dragstart', e => {
-            const color = circle.style.backgroundColor;
-            if (color && color !== 'white') {
-                draggedColor = styleToHex(color);
-            }
-        });
-        circle.addEventListener('dragover', e => e.preventDefault());
-        circle.addEventListener('drop', e => {
-            e.preventDefault();
-            if (draggedColor) applyToColumn(col, draggedColor);
-            draggedColor = null;
-        });
+        enableColorDragDrop(circle, true, () => applyToColumn(col));
         grid.appendChild(circle);
     }
 
@@ -366,19 +350,7 @@ function initKeyboard() {
         circle.dataset.row = row;
         circle.style.gridColumn = 1;
         circle.style.gridRow = row + 2;
-        circle.draggable = true;
-        circle.addEventListener('dragstart', e => {
-            const color = circle.style.backgroundColor;
-            if (color && color !== 'white') {
-                draggedColor = styleToHex(color);
-            }
-        });
-        circle.addEventListener('dragover', e => e.preventDefault());
-        circle.addEventListener('drop', e => {
-            e.preventDefault();
-            if (draggedColor) applyToRow(row, draggedColor);
-            draggedColor = null;
-        });
+        enableColorDragDrop(circle, true, () => applyToRow(row));
         grid.appendChild(circle);
 
         for (let col = 0; col < 10; col++) {
@@ -387,42 +359,29 @@ function initKeyboard() {
             key.dataset.row = row;
             key.dataset.col = col;
             key.dataset.letter = qwertyLayout[row][col];
+            key.textContent = key.dataset.letter;
             key.style.gridColumn = col + 2;
             key.style.gridRow = row + 2;
 
             if (row === 1) key.style.transform = 'translateX(11.25px)';
             if (row === 2) key.style.transform = 'translateX(18.75px)';
 
-            key.draggable = true;
-            key.addEventListener('dragstart', e => {
-                const color = key.style.backgroundColor;
-                if (color) {
-                    draggedColor = styleToHex(color);
-                }
-            });
-            key.addEventListener('dragover', e => {
-                e.preventDefault();
-                key.classList.add('drag-over');
-            });
-            key.addEventListener('dragleave', () => {
-                key.classList.remove('drag-over');
-            });
-            key.addEventListener('drop', e => {
-                e.preventDefault();
-                key.classList.remove('drag-over');
-                if (draggedColor) {
-                    key.style.backgroundColor = draggedColor;
-                    keyColors[`${row}-${col}`] = draggedColor;
-                    updateControlCircles();
-                    draggedColor = null;
-                }
-            });
+            enableColorDragDrop(key, true, () => applyToKey(key))
             grid.appendChild(key);
         }
     }
 }
 
-function applyToColumn(col, color) {
+// Functions for keyboard
+function applyToKey(key) {
+    const row = key.dataset.row;
+    const col = key.dataset.col;
+    keyColors[`${row}-${col}`] = styleToHex(key.style.backgroundColor);
+    updateControlCircles();
+}
+
+function applyToColumn(col) {
+    const color = document.querySelector(`[data-col="${col}"]`).style.backgroundColor;
     for (let row = 0; row < 3; row++) {
         const key = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         key.style.backgroundColor = color;
@@ -431,7 +390,8 @@ function applyToColumn(col, color) {
     updateControlCircles();
 }
 
-function applyToRow(row, color) {
+function applyToRow(row) {
+    const color = document.querySelector(`[data-row="${row}"]`).style.backgroundColor;
     for (let col = 0; col < 10; col++) {
         const key = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         key.style.backgroundColor = color;
@@ -470,6 +430,27 @@ function updateControlCircles() {
     }
 }
 
+// Third section controls
+
+// Add slider event listeners to update values
+document.getElementById('label-size').addEventListener('input', e => {
+    document.getElementById('label-size-val').textContent = e.target.value;
+});
+
+document.getElementById('border-thickness').addEventListener('input', e => {
+    document.getElementById('border-thickness-val').textContent = e.target.value + 'px';
+});
+
+document.getElementById('hold-opacity').addEventListener('input', e => {
+    document.getElementById('hold-opacity-val').textContent = e.target.value + '%';
+});
+
+
+function copyToClipboard() {
+    const text = document.getElementById('json-output').textContent;
+    navigator.clipboard.writeText(text);
+}
+
 function updateExport() {
     const layout = document.getElementById('layout-select').value;
     const keys = layouts[layout];
@@ -487,6 +468,7 @@ function updateExport() {
     const showLetters = document.getElementById('show-letters').checked;
     const labelColor = styleToHex(document.getElementById('letter-color-box').style.backgroundColor);
     const borderColor = styleToHex(document.getElementById('border-color-box').style.backgroundColor);
+    const labelSize = parseInt(document.getElementById('label-size').value);
     const borderThickness = parseInt(document.getElementById('border-thickness').value);
     const pressedKeyColor = styleToHex(document.getElementById('pressed-key-box').style.backgroundColor);
     const approachCircle = styleToHex(document.getElementById('approach-circle-box').style.backgroundColor);
@@ -499,7 +481,7 @@ function updateExport() {
         version: "1.0",
         description: "Made with Komiru's Colorful Skin Maker",
         colors: {
-            labelSize: 36,
+            labelSize: labelSize,
             label: labelColor,
             border: borderColor,
             keyBorderThickness: borderThickness,
@@ -514,98 +496,29 @@ function updateExport() {
     };
 
     const json = JSON.stringify(output, null, 2);
-    document.getElementById('json-output').textContent = json;
+    document.getElementById('json-output').value = json;
 }
 
-function styleToHex(rgbString) {
-    if (!rgbString || rgbString === '') return '#FFFFFF';
-    if (rgbString.startsWith('#')) return rgbString;
 
-    const matches = rgbString.match(/\d+/g);
-    if (!matches) return '#FFFFFF';
-
-    return "#" + matches.map(x => {
-        const hex = Math.round(Math.max(0, Math.min(255, Number(x)))).toString(16);
-        return hex.length === 1 ? "0" + hex : hex;
-    }).join('');
-}
-
-function copyToClipboard() {
-    const text = document.getElementById('json-output').textContent;
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
-}
-
-document.getElementById('show-letters').addEventListener('change', e => {
-    const show = e.target.checked;
-    document.querySelectorAll('.key').forEach(key => {
-        key.textContent = show ? key.dataset.letter : '';
-    });
-});
-
-function toggleTheme() {
-    document.body.classList.toggle('dark-theme');
-}
-
-updateBaseColor('p1-base-box');
-updateBaseColor('p2-base-box');
-updateLetterColors();
-updateBorderColors();
-initRainbowPalette();
-initSavedColors();
-initKeyboard();
-
-
+// Download Zip simply put the current textarea content into a zip file
 function downloadZip() {
-    const layout = document.getElementById('layout-select').value;
-    const keys = layouts[layout];
-    const keyColorsExport = {};
-
-    for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 10; col++) {
-            const color = keyColors[`${row}-${col}`];
-            if (color) {
-                keyColorsExport[keys[row][col]] = color;
-            }
-        }
+    const jsonString = document.getElementById('json-output').value;
+    
+    if (!jsonString || jsonString.trim() === '' || jsonString.includes('Select a layout')) {
+        alert('Please generate the JSON before downloading.');
+        return;
     }
 
-    const showLetters = document.getElementById('show-letters').checked;
-    const labelColor = styleToHex(document.getElementById('letter-color-box').style.backgroundColor);
-    const borderColor = styleToHex(document.getElementById('border-color-box').style.backgroundColor);
-    const borderThickness = parseInt(document.getElementById('border-thickness').value);
-    const pressedKeyColor = styleToHex(document.getElementById('pressed-key-box').style.backgroundColor);
-    const approachCircle = styleToHex(document.getElementById('approach-circle-box').style.backgroundColor);
-    const holdNote = styleToHex(document.getElementById('hold-note-box').style.backgroundColor);
-    const holdOpacity = parseInt(document.getElementById('hold-opacity').value) / 100;
+    try {
+        JSON.parse(jsonString);
+    } catch (e) {
+        alert('Invalid JSON! Please fix the format before downloading.');
+        return;
+    }
 
-    const output = {
-        name: "Custom Skin",
-        author: "You",
-        version: "1.0",
-        description: "Made with Komiru's Colorful Skin Maker",
-        colors: {
-            labelSize: 36,
-            label: labelColor,
-            border: borderColor,
-            keyBorderThickness: borderThickness,
-            keyPressedColor: pressedKeyColor,
-            keyPressedLightColor: pressedKeyColor,
-            approachCircle: approachCircle,
-            holdNote: holdNote,
-            holdNoteActive: approachCircle,
-            holdNoteOpacity: holdOpacity,
-            keyColors: keyColorsExport
-        }
-    };
-
-    const jsonString = JSON.stringify(output, null, 2);
-
-    // Create zip file
     const zip = new JSZip();
     zip.file("skin.json", jsonString);
 
-    // Generate and download
     zip.generateAsync({type: "blob"}).then(function(content) {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
@@ -613,4 +526,23 @@ function downloadZip() {
         link.click();
         URL.revokeObjectURL(link.href);
     });
+}
+
+
+// Initial Setup Calls
+updateBaseColor('p1-base-box');
+updateBaseColor('p2-base-box');
+initRainbowPalette();
+initSavedColors();
+initKeyboard();
+
+const initialBorderColor = '#303030ff'
+document.getElementById('border-color-box').style.backgroundColor = initialBorderColor;
+document.querySelectorAll('.key, .palette-color, .color-box').forEach(div => div.style.borderColor = initialBorderColor);
+const initialLetterColor = '#646464ff'
+document.getElementById('letter-color-box').style.backgroundColor = initialLetterColor;
+document.querySelectorAll('.key').forEach(key => key.style.color = initialLetterColor);
+
+function toggleTheme() {
+    document.body.classList.toggle('dark-theme');
 }
